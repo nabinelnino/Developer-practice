@@ -1,13 +1,15 @@
-// import React from 'react'
-// import { Navigate, Outlet } from 'react-router'
-// import useStateContext from '../hooks/useStateContext'
+import React from 'react';
+import { Navigate, Outlet } from 'react-router';
+import useStateContext from '../hooks/useStateContext';
 
-// export default function Authenticate() {
-//     const { context } = useStateContext()
+export default function Authenticate() {
+  const { context } = useStateContext();
 
-//     return (
-//         context.userid == 0
-//             ? <Navigate to="/" />
-//             : <Outlet />
-//     )
-// }
+  return (
+    context.email === '' ? (
+      <Navigate to="/" />
+    ) : (
+      <Outlet />
+    )
+  );
+}

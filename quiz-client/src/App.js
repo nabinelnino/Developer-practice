@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
-import Layout from './components/Layout';
+import Authenticate from './components/Authenticate';
 import Login from './components/Login';
 import Recommendation from './components/Recommendation';
 
@@ -11,8 +11,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
             <Route path="/recommendation" element={<Recommendation />} />
-          
-  
+            {/* <Route path="/recommendation" element={<Authenticate><Recommendation /></Authenticate>} /> */}
+    
           </Routes>
     </BrowserRouter >
   );

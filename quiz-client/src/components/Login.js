@@ -6,8 +6,6 @@ import useForm from '../hooks/useForm'
 import { createAPIEndpoint, ENDPOINTS } from '../api'
 import useStateContext from '../hooks/useStateContext'
 import { useNavigate } from 'react-router'
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
-
 const getFreshModel = () => ({
     name: '',
     email: ''
@@ -45,10 +43,11 @@ export default function Login() {
     const validate = () => {
         let temp = {}
         temp.email = (/\S+@\S+\.\S+/).test(values.email) ? "" : "Email is not valid."
-        temp.phone = (/^\d{10}$/).test(values.phone) ? "" : "Phone number is not valid."
         temp.fname = values.fname!== "" ? "" : "This field is required."
         temp.lname = values.lname!== "" ? "" : "This field is required."
         temp.address = values.address !== "" ? "" : "This field is required."
+        temp.phone = (/^\d{10}$/).test(values.phone) ? "" : "Phone number is not valid."
+
         
         setErrors(temp)
         return Object.values(temp).every(x => x === "")
@@ -59,7 +58,7 @@ export default function Login() {
             <Card sx={{ width: 400 }}>
                 <CardContent sx={{ textAlign: 'center' }}>
                     <Typography variant="h3" sx={{ my: 3 }}>
-                        Quiz App
+                        Recommendation Engine
                     </Typography>
                     <Box sx={{
                         '& .MuiTextField-root': {
@@ -114,7 +113,6 @@ export default function Login() {
                 </CardContent>
             </Card>
         </Center>
-
 
     )
 }
