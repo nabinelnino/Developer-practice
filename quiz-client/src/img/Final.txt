@@ -1,0 +1,985 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { createAPIEndpoint, ENDPOINTS } from "../api";
+import useStateContext from "../hooks/useStateContext";
+
+import {
+  Alert,
+  Button,
+  Card,
+  CardContent,
+  CardMedia,
+  CardHeader,
+  List,
+  ListItemButton,
+  Typography,
+  Box,
+  LinearProgress,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
+import { getFormatedTime } from "../helper";
+import { useNavigate } from "react-router";
+import mockQuestions from "./mock.json";
+import { green } from "@mui/material/colors";
+import testjson from "./test.json";
+
+const initialState = {
+  qns: [],
+  qnIndex: 0,
+};
+
+export default function AQuiz() {
+  const [qns, setQns] = useState(initialState.qns);
+  const [qnIndex, setQnIndex] = useState(initialState.qnIndex);
+  const { context, setContext } = useStateContext();
+  const [resultData, setResultData] = useState(null);
+  const [renderContent, setRenderContent] = useState(0);
+  const [selectedOptionIdx, setSelectedOptionIdx] = useState(null);
+  const [tempValue, setTempValue] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [recommendExecuted, setRecommendExecuted] = useState(false);
+
+  const handleReset = () => {
+    setRecommendExecuted(false);
+
+    setContext([]);
+    setRenderContent([]);
+    setSelectedOptionIdx([]);
+    setQnIndex([]);
+    setTempValue([]);
+  };
+
+  useEffect(() => {
+    if (qnIndex === 0) {
+      setContext({
+        selectedOptions: [],
+      });
+
+      setQns(testjson);
+    }
+  }, []);
+
+  const generateRecommend = async (catname) => {
+    let currentRecommendation = null;
+let currentResult = null;
+    if (!catname) {
+      console.error("catname is undefined or null");
+      return;
+    }
+    console.log("dlmchfhhhhhhhhh",catname,qnIndex, selectedOptionIdx,tempValue);
+    const category_name = catname;
+    let responseData = "";
+    if (tempValue[0].category ==="Intensity") {
+    let apiUrl = "http://localhost:3001/api/fitness-classes/GetByIntensity";
+    let params = new URLSearchParams({ intensity: category_name });
+    let response = await axios.get(`${apiUrl}?${params}`);
+      console.log(response.data);
+     responseData = response.data;
+    } else {
+
+      const values = catname.split(",").map((value) => parseInt(value.trim()));
+      const min = values[0];
+      const max = values[1];
+      let apiUrl =  "http://localhost:3001/api/fitness-classes/GetByCalories";
+      let params = new URLSearchParams({ min: min, max: max });
+      const response = await axios.get(`${apiUrl}?${params}`);
+      responseData = response.data;
+
+    } 
+    // else {
+    //   console.error("Invalid catname",catname);
+    //   return;
+    // }
+
+    // Randomly select 3 responses if there are more than 5
+    const randomizedData =
+      responseData.length > 5
+        ? getRandomElements(responseData, 3)
+        : responseData;
+
+      console.log("RANDOM data",randomizedData);
+
+      currentRecommendation = randomizedData;
+      currentResult = randomizedData;
+      displayResult(currentResult);
+      setRecommendExecuted(true);
+    setQns(randomizedData);
+    
+  };
+// Function to display the result as new HTML content
+// Function to display the result as new HTML content
+function displayResult(currentResult) {
+  // Check if there is a current recommendation and result
+  if (currentResult) {
+    // Check if the qns array is not empty
+    if (qns.length > 0) {
+      console.log("current result", currentResult);
+      // Create the table container element
+      const tableContainer = document.createElement("div");
+      tableContainer.className = "TableContainer";
+      
+      // Create the table element
+      const table = document.createElement("table");
+      const tableCaption = document.createElement("caption");
+      tableCaption.textContent = "Fitness Class Recommendation based on your inputs";
+      table.appendChild(tableCaption);
+      
+      // Create the table head element
+      const tableHead = document.createElement("thead");
+      
+      // Create the table row for the head
+      const tableHeadRow = document.createElement("tr");
+      
+      // Create the table cells for the head
+      const tableHeadCells = ["Class Name", "Category", "Calories", "Intensity", "Requires Equipment"];
+      tableHeadCells.forEach(cellText => {
+        const tableHeadCell = document.createElement("th");
+        tableHeadCell.textContent = cellText;
+        tableHeadRow.appendChild(tableHeadCell);
+      });
+      
+      // Append the table row for the head to the table head element
+      tableHead.appendChild(tableHeadRow);
+      
+      // Create the table body element
+      const tableBody = document.createElement("tbody");
+      
+      // Iterate over the fitness classes and create table rows with the class details
+      currentResult.forEach(fitnessClass => {
+        console.log("tebleeeeeeeeeeeeeeeee",qns);
+        const tableBodyRow = document.createElement("tr");
+        
+        const tableBodyCells = [
+          fitnessClass.className,
+          fitnessClass.description,
+          Array.isArray(fitnessClass.category) ? fitnessClass.category.join(", ") : fitnessClass.category,
+          fitnessClass.calories,
+          fitnessClass.intensity,
+          fitnessClass.requiresEquipment ? "Yes" : "No"
+        ];
+        
+        tableBodyCells.forEach(cellText => {
+          const tableBodyCell = document.createElement("td");
+          tableBodyCell.textContent = cellText;
+          tableBodyRow.appendChild(tableBodyCell);
+        });
+        
+        tableBody.appendChild(tableBodyRow);
+      });
+      
+      // Append the table head and table body to the table element
+      table.appendChild(tableHead);
+      table.appendChild(tableBody);
+      
+      // Create the reset button
+      const resetButton = document.createElement("button");
+      resetButton.textContent = "Reset";
+      resetButton.addEventListener("click", handleReset);
+      
+      // Append the table and reset button to the table container
+      tableContainer.appendChild(table);
+      tableContainer.appendChild(resetButton);
+      
+      // Append the table container to the document body or any desired container
+      document.body.appendChild(tableContainer);
+    } else {
+      // Create the table element for displaying "No data available"
+      const table = document.createElement("table");
+      
+      // Create the table head element
+      const tableHead = document.createElement("thead");
+      
+      // Create the table row for "No data available" message
+      const noDataHeadRow = document.createElement("tr");
+      
+      // Create the table cell for "No data available" message
+      const noDataHeadCell = document.createElement("td");
+      noDataHeadCell.setAttribute("colspan", "7");
+      
+      // Create the typography element for the message
+      const noDataTypography = document.createElement("Typography");
+      noDataTypography.textContent = "No data available.";
+      
+      // Append the typography element to the table cell
+      noDataHeadCell.appendChild(noDataTypography);
+      
+      // Append the table cell to the table row
+      noDataHeadRow.appendChild(noDataHeadCell);
+      
+      // Create the table row for the reset button
+      // Create the table row for the reset button
+      const resetButtonRow = document.createElement("tr");
+      
+      // Create the table cell for the reset button
+      const resetButtonCell = document.createElement("td");
+      resetButtonCell.setAttribute("colspan", "3");
+      
+      // Create the reset button
+      const resetButton = document.createElement("button");
+      resetButton.textContent = "Reset";
+      resetButton.addEventListener("click", handleReset);
+      
+      // Append the reset button to the table cell
+      resetButtonCell.appendChild(resetButton);
+      
+      // Append the table cell to the table row
+      resetButtonRow.appendChild(resetButtonCell);
+      
+      // Append the table row for "No data available" message and the reset button row to the table head
+      tableHead.appendChild(noDataHeadRow);
+      tableHead.appendChild(resetButtonRow);
+      
+      // Append the table head to the table
+      table.appendChild(tableHead);
+      
+      // Append the table to the document body or any desired container
+      document.body.appendChild(table);
+    }
+  }
+}
+
+
+
+
+  const getRandomElements = (array, count) => {
+    const shuffled = array.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
+  const updateAnswer = async (qnId, optionIdx, catname) => {
+    console.log("first block", catname);
+    const temp = [...context.selectedOptions];
+    setSelectedOptionIdx(optionIdx);
+
+    console.log("---------------------", optionIdx);
+    temp.push({
+      qnId,
+      selected: optionIdx,
+      category: catname,
+    });
+
+    setContext({ selectedOptions: temp });
+    setTempValue(temp);
+    if (qnIndex < 1) {
+      console.log("TEMP!", temp);
+      setContext({ selectedOptions: temp });
+      setQnIndex(qnIndex + 1);
+    } else {
+      console.log("Into the else block");
+      setSelectedOptionIdx(optionIdx);
+      const temp = [...context.selectedOptions];
+      temp.push({
+        qnId,
+        selected: optionIdx,
+        category: catname,
+      });
+      setContext({ selectedOptions: temp });
+      setTempValue(temp);
+      // setContext({ selectedOptions: temp });
+      console.log("TEMP2", temp);
+      try {
+        setQnIndex(qnIndex + 1);
+
+        // Clear the result data and quiz completion flag
+        setResultData(null);
+      } catch (error) {
+        console.error("Error fetching next question:", error);
+      }
+    }
+    if (qnIndex === 0) {
+      setSelectedOptionIdx(optionIdx);
+      // setTempValue(temp);
+      setContext({ selectedOptions: temp });
+      setTempValue(temp);
+
+      fetchQuestionAndAnswer(temp);
+    }
+  };
+
+  const fetchQuestionAndAnswer = async (tempValue) => {
+    try {
+      console.log("dfghjkl;dfghjkdfghjk", qnIndex, tempValue);
+      let responseData = [];
+      if (qnIndex === 1) {
+        // Call API 1 based on optionIdx
+        if (selectedOptionIdx === 0) {
+          console.log("Get all categories");
+          const response = await axios.get(
+            "http://localhost:3001/api/fitness-classes/GetCategories"
+          );
+          responseData = response.data.map((item) => ({
+            id: item.id,
+            category: item.name,
+          }));
+
+          console.log("id", responseData);
+          setQns(responseData);
+        } else if (selectedOptionIdx === 1) {
+          console.log("TEST 1 OF 2");
+          console.log(
+            "BBBBBBBBBBBBBBBBB",
+            qnIndex,
+            selectedOptionIdx,
+            tempValue
+          );
+          responseData = [
+            { id: 1, category: "Low" },
+            { id: 2, category: "High" },
+          ];
+          setQns(responseData);
+        } else if (selectedOptionIdx === 2) {
+          console.log("TEST 1 OF 2");
+          responseData = [
+            { id: 1, category: "Low" },
+            { id: 2, category: "Medium" },
+            { id: 3, category: "High" },
+          ];
+          setQns(responseData);
+        }
+      } else if (qnIndex === 2) {
+        console.log("INDEX2");
+        // Call API 2 based on optionIdx
+        if (selectedOptionIdx === 0) {
+          // const response = await axios.get(
+          //   "http://localhost:3001/api/fitness-classes/Get"
+          // );
+          responseData = [
+            { id: 1, category: "Calories" },
+            { id: 2, category: "Intensity" },
+          ];
+          setQns(responseData);
+        } else {
+          console.log("this is the oneeeee");
+          responseData = [
+            { id: 1, category: "Calories" },
+            { id: 2, category: "Intensity" },
+          ];
+          setQns(responseData);
+        }
+      } else if (qnIndex === 3) {
+        console.log("INDEX3");
+        // Call API 3 based on optionIdx
+        if (selectedOptionIdx === 0) {
+          console.log("--------------------------------");
+          responseData = [
+            { id: 1, category: "Low" },
+            { id: 2, category: "High" },
+          ];
+          setQns(responseData);
+        } else {
+          console.log("++++++++++++++++++++++++++++++++");
+          responseData = [
+            { id: 1, category: "Low" },
+            { id: 2, category: "Medium" },
+            { id: 3, category: "High" },
+          ];
+          setQns(responseData);
+        }
+      } else if (qnIndex === 4) {
+        const categoryNames = tempValue.map((item, index) => {
+          return item.category;
+        });
+      
+        // Map category names to numbers
+        const categoryMap = {};
+        categoryNames.forEach((index, category) => {
+          categoryMap[category] = index;
+        });
+      
+        console.log("MAPPING----",categoryMap);
+        console.log("selected index",selectedOptionIdx)
+        console.log("INDEX4444444",categoryMap["1"]);
+        console.log(tempValue);
+        console.log("all intensity",tempValue);
+
+        // Call API 3 based on optionIdx
+        const response = await axios.get(
+          "http://localhost:3001/api/fitness-classes/Get"
+        );
+        const filteredData = response.data.filter((item) => {
+          return item.category.includes(categoryMap["1"]) && item.intensity.includes(categoryMap["3"]);
+        });
+        // console.log("FILTERRRR_______", response.data);
+        // console.log("FILTERRRR_______+++++++++++", filteredData);
+
+        setQns(filteredData);
+      }
+    } catch (error) {
+      console.error("Error fetching question and answer:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestionAndAnswer(tempValue);
+  }, [qnIndex, selectedOptionIdx, tempValue]);
+
+  useEffect(() => {
+    console.log("Updated qns:", qns);
+    setRenderContent((prevContent) => prevContent + 1);
+    console.log(renderContent);
+  }, [qns]);
+
+  const [inputValues, setInputValues] = useState(Array(qns.length).fill(""));
+  const [inputErrors, setInputErrors] = useState(Array(qns.length).fill(false));
+
+  // const handleInputChange = (e, idx) => {
+  //   const inputValue = e.target.value;
+
+  //   // Perform validation
+  //   const isValidNumber = /^-?\d+\.?\d*$/.test(inputValue); // Validate number format
+  //   const number = parseFloat(inputValue);
+  //   const isValidRange = number >= 100 && number <= 10000; // Validate number range
+
+  //   setInputValues((prevInputValues) => {
+  //     const updatedValues = [...prevInputValues];
+  //     updatedValues[idx] = inputValue;
+  //     return updatedValues;
+  //   });
+
+  //   setInputErrors((prevInputErrors) => {
+  //     const updatedErrors = [...prevInputErrors];
+  //     updatedErrors[idx] = !isValidNumber || !isValidRange;
+  //     return updatedErrors;
+  //   });
+  // };
+
+  const handleInputChange = (e, idx) => {
+    const value = e.target.value;
+    //   // Perform validation
+    const isValidNumber = /^-?\d+\.?\d*$/.test(value); // Validate number format
+    const number = parseFloat(value);
+    const isValidRange = number >= 100 && number <= 10000; // Validate number range
+    setInputErrors((prevInputErrors) => {
+      const updatedErrors = [...prevInputErrors];
+      updatedErrors[idx] = !isValidNumber || !isValidRange;
+      return updatedErrors;
+    });
+    setQns((prevQns) =>
+      prevQns.map((item, index) => (index === idx ? { ...item, value } : item))
+    );
+  };
+
+  return (
+    <>
+      <>
+        {qnIndex === 0 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Question " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question  of 5"} />
+
+            <Box>
+              <LinearProgress
+                variant="determinate"
+                value={((qnIndex + 1) * 100) / 5}
+              />
+            </Box>
+            <CardContent>
+              <Typography variant="h6"></Typography>
+              <List>
+                {qns.map((item, qnId) => (
+                  <ListItemButton
+                    disableRipple
+                    key={item.qnId}
+                    onClick={() => updateAnswer(item.qnId, qnId, item.category)}
+                  >
+                    <div>
+                      <b>{String.fromCharCode(65 + qnId) + " . "}</b>
+                      {item.category}
+                    </div>
+                  </ListItemButton>
+                ))}
+              </List>
+              {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+            </CardContent>
+          </Card>
+        )}
+
+        {!recommendExecuted && qnIndex === 1 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Question " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question  of Q2of4"} />
+            {selectedOptionIdx === 1 ? (
+              <CardContent>
+                <Typography variant="h6"></Typography>
+                <List>
+                  {qns.map((item, idx) => (
+                    <React.Fragment key={item.qnId}>
+                      <TextField
+                        key={item.qnId}
+                        label={item.category}
+                        value={qns[idx].value}
+                        variant="outlined"
+                        fullWidth
+                        error={inputErrors[idx]}
+                        helperText={inputErrors[idx] ? "Invalid number" : ""}
+                        onChange={(e) => handleInputChange(e, idx)}
+                      />
+
+                      {idx === qns.length - 1 && (
+                        <Button
+                          variant="contained"
+                          sx={{ mt: 2 }}
+                          size="small"
+                          onClick={() => {
+                            const values = qns.map((item) => item.value); // Get values from text fields
+                            console.log("KDSHFKSH", values);
+                            generateRecommend(values.join(", ")); // Pass the values array
+                            // generateRecommend(qns[qns.length - 1].qnId, qns[qns.length - 1].category, values.join(", ") ); // Pass the values array
+                          }}
+                        >
+                          Submit
+                        </Button>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </List>
+                <pre>{JSON.stringify(qns, null, 2)}</pre>
+              </CardContent>
+            ):selectedOptionIdx === 2 ? (
+<CardContent>
+                  <Typography variant="h6"></Typography>
+                  <List>
+                    {qns.map((item, id) => (
+                      <ListItemButton
+                        disableRipple
+                        key={item.qnId}
+                        onClick={() => generateRecommend(item.category)}
+                      >
+                        <div>
+                          <b>{String.fromCharCode(65 + id) + " . "}</b>
+                          {item.category}
+                        </div>
+                      </ListItemButton>
+                    ))}
+                  </List>
+                  {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+                </CardContent>
+
+            )
+            : (
+              <>
+                <Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={((qnIndex + 1) * 100) / 5}
+                  />
+                </Box>
+                <CardContent>
+                  <Typography variant="h6"></Typography>
+                  <List>
+                    {qns.map((item, id) => (
+                      <ListItemButton
+                        disableRipple
+                        key={item.qnId}
+                        onClick={() => updateAnswer(item.qnId, id,item.category)}
+                      >
+                        <div>
+                          <b>{String.fromCharCode(65 + id) + " . "}</b>
+                          {item.category}
+                        </div>
+                      </ListItemButton>
+                    ))}
+                  </List>
+                  {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+                </CardContent>
+              </>
+            )}
+          </Card>
+        )}
+
+        {qnIndex === 2 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Question " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question  of Hellooooooo"} />
+            {selectedOptionIdx === 0 || selectedOptionIdx === 1 || selectedOptionIdx === 2 || selectedOptionIdx === 3 || selectedOptionIdx === 4 ? (
+              <CardContent>
+                <Typography variant="h6"></Typography>
+                <List>
+                  {qns.map((item, qnId) => (
+                    <ListItemButton
+                      disableRipple
+                      key={item.qnId}
+                      onClick={() =>
+                        updateAnswer(item.qnId, qnId, item.category)
+                      }
+                    >
+                      <div>
+                        <b>{String.fromCharCode(65 + qnId) + " . "}</b>
+                        {item.category}
+                      </div>
+                    </ListItemButton>
+                  ))}
+                </List>
+                <pre>{JSON.stringify(qns, null, 2)}</pre>
+              </CardContent>
+            ) : (
+              <>
+              <CardHeader title={"Question  of 5665474754"} />
+                <Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={((qnIndex + 1) * 100) / 5}
+                  />
+                </Box>
+                <CardContent>
+                  <Typography variant="h6"></Typography>
+                  <List>
+                    {qns.map((item, id) => (
+                      <ListItemButton
+                        disableRipple
+                        key={item.qnId}
+                        onClick={() => updateAnswer(item.qnId, id,item.category)}
+                      >
+                        <div>
+                          <b>{String.fromCharCode(65 + id) + " . "}</b>
+                          {item.category}
+                        </div>
+                      </ListItemButton>
+                    ))}
+                  </List>
+                  {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+                </CardContent>
+              </>
+            )}
+          </Card>
+        )}
+
+
+
+
+        {!recommendExecuted && qnIndex === 3 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Questionsss " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question  of 99999999"} />
+            {selectedOptionIdx === 0 ? (
+ <CardContent>
+ <Typography variant="h6"></Typography>
+ <List>
+   {qns.map((item, idx) => (
+     <React.Fragment key={item.qnId}>
+       <TextField
+         key={item.qnId}
+         label={item.category}
+         value={qns[idx].value}
+         variant="outlined"
+         fullWidth
+         error={inputErrors[idx]}
+         helperText={inputErrors[idx] ? "Invalid number" : ""}
+         onChange={(e) => handleInputChange(e, idx)}
+       />
+
+       {idx === qns.length - 1 && (
+         <Button
+           variant="contained"
+           sx={{ mt: 2 }}
+           size="small"
+           onClick={() => {
+             const values = qns.map((item) => item.value); // Get values from text fields
+             console.log("KDSHFKSH", values, <CardContent>
+                <Typography variant="h6"></Typography>
+                <List>
+                  {qns.map((item, idx) => (
+                    <React.Fragment key={item.qnId}>
+                      <TextField
+                        key={item.qnId}
+                        label={item.category}
+                        value={qns[idx].value}
+                        variant="outlined"
+                        fullWidth
+                        error={inputErrors[idx]}
+                        helperText={inputErrors[idx] ? "Invalid number" : ""}
+                        onChange={(e) => handleInputChange(e, idx)}
+                      />
+
+                      {idx === qns.length - 1 && (
+                        <Button
+                          variant="contained"
+                          sx={{ mt: 2 }}
+                          size="small"
+                          onClick={() => {
+                            const values = qns.map((item) => item.value); // Get values from text fields
+                            console.log("KDSHFKSH", values,qnIndex);
+                            generateRecommend(values.join(", ")); // Pass the values array
+                            // generateRecommend(qns[qns.length - 1].qnId, qns[qns.length - 1].category, values.join(", ") ); // Pass the values array
+                          }}
+                        >
+                          Submit
+                        </Button>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </List>
+                <pre>{JSON.stringify(qns, null, 2)}</pre>
+              </CardContent>);
+             generateRecommend(values.join(", ")); // Pass the values array
+             // generateRecommend(qns[qns.length - 1].qnId, qns[qns.length - 1].category, values.join(", ") ); // Pass the values array
+           }}
+         >
+           Submit
+         </Button>
+       )}
+     </React.Fragment>
+   ))}
+ </List>
+ <pre>{JSON.stringify(qns, null, 2)}</pre>
+</CardContent>
+            ) : selectedOptionIdx === 1 ? (
+              <>
+                <Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={((qnIndex + 1) * 100) / 5}
+                  />
+                </Box>
+                <CardContent>
+                  <Typography variant="h6"></Typography>
+                  <List>
+                    {qns.map((item, id) => (
+                      <ListItemButton
+                        disableRipple
+                        key={item.qnId}
+                        onClick={() =>
+                          updateAnswer(item.qnId, id, item.category)
+                        }
+                      >
+                        <div>
+                          <b>{String.fromCharCode(65 + id) + " . "}</b>
+                          {item.category}
+                        </div>
+                      </ListItemButton>
+                    ))}
+                  </List>
+                  {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+                </CardContent>
+              </>
+            ) : (
+              <>
+                <Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={((qnIndex + 1) * 100) / 5}
+                  />
+                </Box>
+                <CardContent>
+                  <Typography variant="h6"></Typography>
+                  <List>
+                    {qns.map((item, id) => (
+                      <ListItemButton
+                        disableRipple
+                        key={item.qnId}
+                        onClick={() => updateAnswer(item.qnId, id,item.category)}
+                      >
+                        <div>
+                          <b>{String.fromCharCode(65 + id) + " . "}</b>
+                          {item.category}
+                        </div>
+                      </ListItemButton>
+                    ))}
+                  </List>
+                  {/* <pre>{JSON.stringify(qns, null, 2)}</pre> */}
+                </CardContent>
+              </>
+            )}
+          </Card>
+        )}
+
+        {qnIndex === 222 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Question " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question  of 5sdfghjkl"} />
+
+            <Box>
+              <LinearProgress
+                variant="determinate"
+                value={((qnIndex + 1) * 100) / 5}
+              />
+            </Box>
+            <CardContent>
+              <Typography variant="h6"></Typography>
+              <List>
+                {qns.map((item, idx) => (
+                  <ListItemButton
+                    disableRipple
+                    key={item.qnId}
+                    onClick={() => updateAnswer(item.qnId, idx)}
+                  >
+                    <div>
+                      <b>{String.fromCharCode(65 + idx) + " . "}</b>
+                      {item.name}
+                    </div>
+                  </ListItemButton>
+                ))}
+              </List>
+              <pre>{JSON.stringify(qns, null, 2)}</pre>
+            </CardContent>
+          </Card>
+        )}
+        {/* {qnIndex === 2 && (
+          <Card
+            sx={{
+              maxWidth: 640,
+              mx: "auto",
+              mt: 5,
+              "& .MuiCardHeader-action": { m: 0, alignSelf: "center" },
+            }}
+          >
+            <CardHeader
+              title={"Question " + (qnIndex + 1) + " of 5"}
+              action={<Typography></Typography>}
+            />
+            <CardHeader title={"Question of 5sdfghjklgfgdfg"} />
+
+            <Box>
+              <LinearProgress
+                variant="determinate"
+                value={((qnIndex + 1) * 100) / 5}
+              />
+            </Box>
+            <CardContent>
+              <Typography variant="h6"></Typography>
+              <List>
+                {qns.map((item, idx) => (
+                  <TextField
+                    key={item.qnId}
+                    label={String.fromCharCode(65 + idx) + " . "}
+                    value={item.name}
+                    variant="outlined"
+                    fullWidth
+                    // onChange={(e) => handleInputChange(e, idx)}
+                  />
+                ))}
+              </List>
+              <pre>{JSON.stringify(qns, null, 2)}</pre>
+            </CardContent>
+          </Card>
+        )} */}
+
+        {qnIndex === 4 && (
+            <>
+              {qns.length > 0 ? (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Class Name</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell>Category</TableCell>
+                        <TableCell>Class Abbreviation</TableCell>
+                        <TableCell>Calories</TableCell>
+                        <TableCell>Intensity</TableCell>
+                        <TableCell>Requires Equipment</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {qns.map((fitnessClass) => (
+                        <TableRow key={fitnessClass.className}>
+                          <TableCell>{fitnessClass.className}</TableCell>
+                          <TableCell>{fitnessClass.description}</TableCell>
+                          <TableCell>
+                            {Array.isArray(fitnessClass.category)
+                              ? fitnessClass.category.join(", ")
+                              : fitnessClass.category}
+                          </TableCell>
+                          <TableCell>{fitnessClass.classAbbr}</TableCell>
+                          <TableCell>{fitnessClass.calories}</TableCell>
+                          <TableCell>{fitnessClass.intensity}</TableCell>
+                          <TableCell>
+                            {fitnessClass.requiresEquipment ? "Yes" : "No"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <Button variant="contained" onClick={handleReset}>
+                    Reset
+                  </Button>
+                </TableContainer>
+              ) : (
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell align="center" colSpan={7}>
+                        <Typography variant="body1">
+                          No data available.
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell align="center" colSpan={3}>
+                        <Button variant="contained" onClick={handleReset}>
+                          Reset
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                </Table>
+              )}
+            </>
+          )}
+
+      
+
+
+
+
+      </>
+    </>
+  );
+}

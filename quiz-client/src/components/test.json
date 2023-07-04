@@ -1,0 +1,21 @@
+[
+    {
+        "qnId":0,
+        "category": "Category",
+        "imageName": null
+        
+    },
+    {
+        "qnId":2,
+        "category": "Calories",
+        "imageName": null
+        
+    },
+    {
+        "qnId":3,
+        "category": "Intensity",
+        "imageName": null
+        
+    }
+
+]
